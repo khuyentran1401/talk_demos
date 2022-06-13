@@ -1,29 +1,47 @@
 import requests
 import re
 from bs4 import BeautifulSoup
+from autoscraper import AutoScraper
 
 
-def find_nike_price(url):
-    k = requests.get(url).text
-    soup = BeautifulSoup(k, "html.parser")
-    price_string = soup.find("div", {"class": "product-price"}).text
-    price_string = price_string.replace(" ", "")
-    price = int(re.search("[0-9]+", price_string).group(0))
-    return price
+def get_shoes_link():
+    url = "https://www.nike.com/w/womens-shoes-5e1x6zy7ok"
+    scraper = AutoScraper()
+    wanted_list = ["https://www.nike.com/t/air-force-1-07-womens-shoes-GCkPzr/DD8959-100"]
+    urls = scraper.build(url, wanted_list)
+    return urls
 
 
-def compare_price(price, budget):
-    if price <= budget:
-        print(f"Buy the shoes! Good deal!")
+def find_nike_price(urls: list):
+    prices = []
+    for url in urls:
+        k = requests.get(url).text
+        soup = BeautifulSoup(k, "html.parser")
+        price_string = soup.find("div", {"class": "product-price"}).text
+        price_string = price_string.replace(" ", "")
+        price = int(re.search("[0-9]+", price_string).group(0))
+        prices.append(price)
+    return prices
+
+
+def get_cheap_prices(prices: list, budget: int):
+    return [price for price in prices if price <= budget]
+
+
+def summarize(prices: list, budget: int):
+    num_cheap_shoes = len(prices)
+    if num_cheap_shoes > 0:
+        print(f"There are {num_cheap_shoes} shoes under ${budget}. Come back and shop")
     else:
-        print(f"Don't buy the shoes. They're too expensive")
+        print("Sorry, there are no cheap shoes.")
 
 
-def nike_flow(url, budget):
-    price = find_nike_price(url)
-    compare_price(price, budget)
+def nike_flow(budget: int):
+    shoes_urls = get_shoes_link()
+    prices = find_nike_price(shoes_urls)
+    cheap_prices = get_cheap_prices(prices, budget)
+    summarize(cheap_prices, budget)
 
 
-url = "https://www.nike.com/t/air-max-270-womens-shoes-Pgb94t/AH6789-601"
 budget = 120
-nike_flow(url, budget)
+nike_flow(budget)
